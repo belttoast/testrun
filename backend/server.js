@@ -1,20 +1,31 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const mysql = require('mysql2/promise');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
-
+const fs = require('fs');
 const path = require('path');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
 app.use('/uploads', express.static(uploadDir));
 
-const SECRET = 'jwt_secret';
+const SECRET = process.env.JWT_SECRET || 'jwt_secret';
 const upload = multer({ dest: uploadDir });
-const db = mysql.createPool({ host: 'localhost', user: 'root', password: '', database: 'eval_db' });
+const db = mysql.createPool({
+  host: process.env.DB_HOST || 'localhost',
+  port: Number(process.env.DB_PORT) || 3307,
+  user: process.env.DB_USER || 'devuser',
+  password: process.env.DB_PASSWORD !== undefined ? process.env.DB_PASSWORD : 'devpassword',
+  database: process.env.DB_NAME || 'eval_db',
+  charset: 'utf8mb4'
+});
 
 // ฟังก์ชันส่ง Response มาตรฐาน { status, message, data }
 const send = (res, status, message, data = null) => res.status(status).json({ status, message, data });
@@ -136,4 +147,5 @@ app.post('/api/import', auth, async (req, res) => {
   }
 });
 
-app.listen(5000, () => console.log('Server running on port 5000'));
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
