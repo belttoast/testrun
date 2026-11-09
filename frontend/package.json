@@ -9,12 +9,15 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "jsonwebtoken": "^9.0.3",
+    "mysql2": "^3.24.6",
     "next": "16.4.5",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

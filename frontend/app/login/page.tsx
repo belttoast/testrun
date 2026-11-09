@@ -1,49 +1,74 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<{ text: string; isError: boolean } | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      router.push("/dashboard");
+    }
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setMessage(null);
 
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-      const res = await fetch(`${apiUrl}/api/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
+    const endpoints = [
+      "http://localhost:5000/api/login",
+      "http://127.0.0.1:5000/api/login",
+      "/api/login",
+    ];
 
-      const result = await res.json();
+    let lastError = "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ Backend ได้";
 
-      if (res.ok && result.data?.token) {
-        localStorage.setItem("token", result.data.token);
-        localStorage.setItem("user", JSON.stringify(result.data.user));
-        setMessage({
-          text: `เข้าสู่ระบบสำเร็จ: ${result.data.user.name} (${result.data.user.role})`,
-          isError: false,
+    for (const endpoint of endpoints) {
+      try {
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password }),
         });
-      } else {
-        setMessage({
-          text: result.message || "เข้าสู่ระบบไม่สำเร็จ",
-          isError: true,
-        });
+
+        const result = await res.json().catch(() => null);
+
+        if (!result) {
+          continue;
+        }
+
+        if (res.ok && result.data?.token) {
+          localStorage.setItem("token", result.data.token);
+          localStorage.setItem("user", JSON.stringify(result.data.user));
+          router.push("/dashboard");
+          return;
+        } else {
+          setMessage({
+            text: result.message || "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง",
+            isError: true,
+          });
+          setLoading(false);
+          return;
+        }
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          lastError = err.message;
+        }
       }
-    } catch {
-      setMessage({
-        text: "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ Backend (port 5000) ได้",
-        isError: true,
-      });
-    } finally {
-      setLoading(false);
     }
+
+    setMessage({
+      text: `ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ Backend (port 5000) ได้: ${lastError}`,
+      isError: true,
+    });
+    setLoading(false);
   };
 
   return (
